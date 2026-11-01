@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink: #13233a;        /* نص أساسي */
+  --color-muted: #5b6676;      /* نص ثانوي */
+  --color-paper: #f7f5f0;      /* خلفية دافئة */
+  --color-card: #ffffff;
+  --color-line: #e4e0d6;
+
+  --color-navy-50: #eef2f7;
+  --color-navy-100: #d6e0ec;
+  --color-navy-600: #1f3d63;
+  --color-navy-700: #18314f;
+  --color-navy-800: #112540;
+  --color-navy-900: #0b1a2e;
+
+  --color-gold-100: #f4ead7;
+  --color-gold-400: #c9a465;
+  --color-gold-500: #b08d57;
+  --color-gold-700: #7d6136;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  line-height: 1.75;
+  font-feature-settings: "kern";
+  text-rendering: optimizeLegibility;
+}
+
+/* الأرقام والروابط اللاتينية داخل النص العربي */
+.ltr-nums {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-gold-500);
+  outline-offset: 2px;
+}
