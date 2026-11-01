@@ -1,36 +1,233 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ميعاد (Meead)
 
-## Getting Started
+دليل ذكي لمكاتب المحاماة: يبحث المستخدم عن محامٍ لقضيته، يقارن بين المكاتب الموثّقة وتقييماتها، ثم يتواصل مع المكتب الذي يختاره.
 
-First, run the development server:
+**نطاق النسخة الأولى (MVP):** الدمام والخبر · الأحوال الشخصية · ويب متجاوب · بدون دفع إلكتروني · بدون استشارات داخل المنصة.
+
+---
+
+## المحتويات
+
+1. [التقنيات وسبب اختيارها](#التقنيات-وسبب-اختيارها)
+2. [التشغيل المحلي](#التشغيل-المحلي)
+3. [النشر (مجاناً)](#النشر-مجاناً)
+4. [تعيين أول مدير للمنصة](#تعيين-أول-مدير-للمنصة)
+5. [كيف تعمل المنصة](#كيف-تعمل-المنصة)
+6. [القواعد المحمية في قاعدة البيانات](#القواعد-المحمية-في-قاعدة-البيانات)
+7. [هيكل المشروع](#هيكل-المشروع)
+8. [قيود معروفة وخطوات لاحقة](#قيود-معروفة-وخطوات-لاحقة)
+
+---
+
+## التقنيات وسبب اختيارها
+
+| التقنية | السبب |
+|---|---|
+| **Next.js 15 (App Router) + TypeScript** | الواجهة والخادم في مشروع واحد؛ الصفحات تُولَّد على الخادم فتظهر جيداً في محركات البحث. |
+| **Tailwind CSS 4** | دعم مباشر لاتجاه اليمين لليسار وتصميم متجاوب للجوال. |
+| **IBM Plex Sans Arabic** عبر `next/font` | خط عربي واضح يُستضاف مع الموقع نفسه بلا طلبات خارجية. |
+| **Supabase** (PostgreSQL + Auth + Storage) | قاعدة بيانات وتسجيل دخول وتخزين ملفات في خطة مجانية، مع صلاحيات على مستوى الصفوف (RLS) تحمي القواعد حتى لو أخطأ الكود. |
+| **Zod** | التحقق من كل المدخلات على الخادم. |
+| **Vercel + Supabase** | استضافة مجانية في البداية. |
+
+---
+
+## التشغيل المحلي
+
+### المتطلبات
+- Node.js 20 أو أحدث
+- Docker (لتشغيل Supabase محلياً)
+
+### الخطوات
 
 ```bash
+# 1) تثبيت الحزم
+npm install
+
+# 2) تشغيل Supabase محلياً (أول مرة تستغرق دقائق لتنزيل الصور)
+npx supabase start
+#   يطبع في النهاية: API URL و anon key و service_role key
+
+# 3) إعداد متغيرات البيئة
+cp .env.example .env.local
+#   ضع القيم المطبوعة من الخطوة السابقة:
+#   NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+#   SUPABASE_SERVICE_ROLE_KEY=<service_role key>
+
+# 4) تشغيل الموقع
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+#   افتح http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+عند التشغيل المحلي تُحمَّل البيانات التجريبية من `supabase/seed.sql` تلقائياً، وفيها:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| الحساب | كلمة المرور | الدور |
+|---|---|---|
+| `admin@example.com` | `Password123!` | مدير المنصة |
+| `owner@example.com` | `Password123!` | صاحب «مكتب تجريبي للمحاماة (١)» |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+> جميع المكاتب والأرقام في البيانات التجريبية وهمية، ولا تُستخدم إلا محلياً.
 
-## Learn More
+### أوامر مفيدة
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npx supabase db reset   # إعادة بناء القاعدة من الصفر + البيانات التجريبية
+npx supabase stop       # إيقاف Supabase المحلي
+npm run lint            # فحص الكود
+npm run build           # بناء نسخة الإنتاج
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+رسائل البريد المحلية (تأكيد الحساب وغيره) تظهر في Mailpit: http://127.0.0.1:54324
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## النشر (مجاناً)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 1) إنشاء مشروع Supabase
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. أنشئ مشروعاً جديداً في [supabase.com](https://supabase.com) واختر أقرب منطقة (مثلاً Frankfurt أو Mumbai).
+2. اربط المشروع وارفع هيكل قاعدة البيانات:
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref <PROJECT_REF>
+   npx supabase db push        # يرفع ملفات supabase/migrations فقط — لا يرفع البيانات التجريبية
+   ```
+3. من **Project Settings → API** انسخ: `Project URL` و `anon public` و `service_role`.
+
+### 2) إعداد تسجيل الدخول في Supabase
+
+في **Authentication → URL Configuration**:
+- **Site URL:** `https://<your-domain>`
+- **Redirect URLs:** أضف `https://<your-domain>/auth/confirm`
+
+في **Authentication → Providers → Email**: فعّل **Confirm email**.
+
+في **Authentication → Email Templates → Confirm signup** غيّر الرابط إلى:
+```html
+<a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/dashboard/office">تأكيد البريد</a>
+```
+
+> خدمة البريد المدمجة في Supabase محدودة جداً (بضع رسائل في الساعة). للإنتاج اربط SMTP خاص من **Project Settings → Auth → SMTP**، مثل Resend أو Brevo، ولكلٍّ منهما خطة مجانية.
+
+### 3) النشر على Vercel
+
+1. استورد المستودع في [vercel.com](https://vercel.com/new).
+2. أضف متغيرات البيئة:
+
+   | المتغير | القيمة |
+   |---|---|
+   | `NEXT_PUBLIC_SUPABASE_URL` | Project URL |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon public key |
+   | `SUPABASE_SERVICE_ROLE_KEY` | service_role key (**سري**) |
+   | `NEXT_PUBLIC_SITE_URL` | `https://<your-domain>` |
+
+3. اضغط Deploy.
+
+> **تنبيه:** مشاريع Supabase المجانية تتوقف مؤقتاً بعد أسبوع بلا أي نشاط، وتُستأنف من لوحة Supabase.
+
+---
+
+## تعيين أول مدير للمنصة
+
+1. سجّل حساباً عادياً من صفحة `/join` (لا تحتاج لإكمال بيانات المكتب).
+2. من **Supabase → SQL Editor** نفّذ:
+   ```sql
+   update public.profiles
+      set role = 'admin'
+    where id = (select id from auth.users where email = 'you@example.com');
+   ```
+3. سجّل الدخول، وسيظهر رابط **الإدارة** في الشريط العلوي.
+
+---
+
+## كيف تعمل المنصة
+
+### الزائر
+1. **الرئيسية `/`**: يختار التخصص ونوع القضية (اختياري) والمدينة.
+2. **النتائج `/search`**: المكاتب المعتمدة المطابقة مرتبة حسب التقييم.
+3. **صفحة المكتب `/office/[slug]`**: الوصف والتخصصات وساعات العمل والتقييمات وأزرار التواصل.
+4. **التواصل**: الزر يستدعي الخادم، فيسجّل التواصل في `contact_events` ثم يحوّل الزائر إلى واتساب أو الاتصال أو البريد. أرقام المكتب لا تظهر في صفحات الموقع إطلاقاً.
+   - تكرار التواصل من الزائر نفسه مع المكتب نفسه بالوسيلة نفسها خلال **نصف ساعة** يُحتسب مرة واحدة.
+5. **التقييم**: عند التواصل يُحفظ في المتصفح رمز تقييم سري (httpOnly cookie صالح ٩٠ يوماً). نموذج التقييم يظهر فقط لمن يحمل رمزاً صالحاً لم يُستخدم، ويُحفظ التقييم بحالة «بانتظار المراجعة».
+
+### المكتب
+1. **`/join`**: إنشاء حساب.
+2. **`/dashboard/office`**: يقدّم طلب التسجيل بكامل البيانات: الاسم والنبذة والمدينة والعنوان وأنواع القضايا ووسائل التواصل وساعات العمل ورقم الترخيص وصورته.
+3. ينتظر الاعتماد، وتظهر حالة الطلب في لوحته (قيد المراجعة / معتمد / مرفوض مع السبب).
+4. بعد الاعتماد يرى في لوحته:
+   - **نظرة عامة**: عدد طلبات التواصل (٧ و٣٠ يوماً) ومتوسط التقييم.
+   - **الطلبات الواردة**: كل تواصل بوقته ووسيلته.
+   - **التقييمات**: كل تقييمات مكتبه وحالتها.
+5. تعديل رقم الترخيص أو صورته يعيد المكتب للمراجعة تلقائياً ويخفيه من النتائج حتى يُعتمد من جديد.
+
+### الإدارة `/admin`
+- **طلبات المكاتب**: الطلبات المعلّقة. لكل طلب صفحة تعرض كل البيانات ورقم الترخيص وصورته (برابط مؤقت لعشر دقائق)، مع أزرار **اعتماد ونشر** أو **رفض** (مع سبب يظهر للمكتب).
+- **كل المكاتب**: تصفية حسب الحالة، مع إمكانية إيقاف مكتب معتمد أو إعادة تفعيله.
+- **مراجعة التقييمات**: نشر أو رفض كل تقييم، ويظهر معه وقت التواصل ووسيلته.
+- **سجل التواصل**: عدد طلبات التواصل لكل مكتب خلال ٧ أو ٣٠ أو ٩٠ يوماً، وهو أساس نموذج الدفع لاحقاً.
+
+---
+
+## القواعد المحمية في قاعدة البيانات
+
+هذه القواعد مطبّقة في قاعدة البيانات نفسها (RLS وtriggers)، وليس في الواجهة فقط:
+
+| القاعدة | كيف تُطبَّق |
+|---|---|
+| لا يُنشر مكتب قبل اعتماده | الزوار لا يقرؤون إلا `status = 'approved'`. |
+| المكتب لا يعتمد نفسه | trigger `guard_office_status` يمنع غير المدير من تغيير الحالة. |
+| تغيير الترخيص يعيد المراجعة | trigger `license_change_requires_review`. |
+| لا تُنشر تقييمات قبل المراجعة | الزوار لا يقرؤون إلا التقييمات المعتمدة، ولا يستطيعون الكتابة مباشرة. |
+| تقييم واحد لكل تواصل | قيد `unique (contact_event_id)`. |
+| كل تواصل مسجّل | أرقام التواصل في جدول `office_private` الذي لا يقرؤه الزوار، والوصول إليها يتم فقط عبر الخادم الذي يسجّل الحدث أولاً. |
+| صور التراخيص خاصة | حاوية `licenses` خاصة، ولا يصلها إلا الخادم. |
+
+### جداول قاعدة البيانات
+
+```
+profiles            المستخدمون وأدوارهم (user / office / admin)
+cities              المدن (الدمام، الخبر)
+specialties         التخصص الرئيسي وأنواع القضايا تحته
+offices             المكاتب وحالة الاعتماد
+office_private      أرقام التواصل + الترخيص (خاص)
+office_specialties  أنواع القضايا لكل مكتب
+office_hours        ساعات العمل
+contact_events      سجل كل تواصل (الوقت، المكتب، الوسيلة، المستخدم إن كان مسجلاً)
+reviews             التقييمات وحالة المراجعة
+office_listing      (view) بطاقة المكتب مع متوسط وعدد التقييمات المعتمدة
+```
+
+---
+
+## هيكل المشروع
+
+```
+src/
+  app/
+    page.tsx                  الرئيسية
+    search/                   النتائج
+    office/[slug]/            صفحة المكتب + أزرار التواصل + نموذج التقييم
+    join/  login/  auth/      التسجيل والدخول وتأكيد البريد
+    dashboard/                لوحة المكتب
+    admin/                    لوحة الإدارة
+  components/                 مكونات الواجهة المشتركة
+  lib/
+    data.ts                   استعلامات الصفحات العامة
+    dashboard.ts  admin.ts    استعلامات اللوحات
+    contact.ts  reviews.ts    منطق التواصل وأهلية التقييم
+    supabase/server.ts        عملاء Supabase (عادي + خادم)
+  middleware.ts               تجديد الجلسة وحماية اللوحات
+supabase/
+  migrations/                 هيكل قاعدة البيانات والصلاحيات
+  seed.sql                    بيانات تجريبية (محلياً فقط)
+```
+
+---
+
+## قيود معروفة وخطوات لاحقة
+
+- **أهلية التقييم مبنية على كوكيز المتصفح:** من يمسح الكوكيز أو يغيّر جهازه يفقد رمز التقييم. مراجعة الإدارة لكل تقييم تعوّض ذلك حالياً، ويمكن لاحقاً ربط التقييم بحساب مستخدم أو برمز يُرسل عبر واتساب.
+- **لا إشعارات بريدية بعد:** لا يصل للإدارة إشعار عند طلب جديد، ولا للمكتب عند اعتماده. يمكن إضافتها عبر Supabase Database Webhooks.
+- **لا يوجد حد لعدد الطلبات (rate limiting)** على أزرار التواصل والتقييم، وقد يلزم لاحقاً (مثل Vercel Firewall أو Upstash).
+- **التوسع:** إضافة مدينة أو تخصص تتم بإضافة صف في جدولي `cities` و`specialties`، دون تعديل الكود.

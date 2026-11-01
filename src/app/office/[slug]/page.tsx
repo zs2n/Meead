@@ -19,7 +19,11 @@ import {
   riyadhNow,
   toMinutes,
 } from "@/lib/format";
+import { cookies } from "next/headers";
+import { REVIEW_SENT_COOKIE } from "@/lib/contact";
+import { getReviewEligibility } from "@/lib/reviews";
 import { ContactButtons } from "./contact-buttons";
+import { ReviewForm } from "./review-form";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -55,12 +59,14 @@ export default async function OfficePage({ params }: Props) {
   const office = await getOfficeBySlug(slug);
   if (!office) notFound();
 
-  const [hours, reviews, methods] = await Promise.all([
+  const [hours, reviews, methods, eligibility] = await Promise.all([
     getOfficeHours(office.id),
     getApprovedReviews(office.id),
     getContactMethods(office.id),
+    getReviewEligibility(office.id),
   ]);
 
+  const reviewSent = (await cookies()).get(REVIEW_SENT_COOKIE)?.value === office.id;
   const status = openStatus(hours);
   const today = riyadhNow().weekday;
 
@@ -124,6 +130,19 @@ export default async function OfficePage({ params }: Props) {
 
           <section id="reviews" className="rounded-2xl border border-line bg-card p-6">
             <h2 className="mb-4 text-lg font-bold">التقييمات</h2>
+
+            {reviewSent && (
+              <div role="status" className="mb-6 rounded-2xl border border-green-200 bg-green-50 p-5 text-green-900">
+                <p className="font-semibold">شكراً لك! استلمنا تقييمك.</p>
+                <p className="mt-1 text-sm">سيظهر في صفحة المكتب بعد مراجعته من فريق ميعاد.</p>
+              </div>
+            )}
+
+            {eligibility.eligible && !reviewSent && (
+              <div className="mb-6">
+                <ReviewForm officeId={office.id} officeName={office.name} />
+              </div>
+            )}
 
             {reviews.length > 0 ? (
               <>

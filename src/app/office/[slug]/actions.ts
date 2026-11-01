@@ -1,6 +1,8 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { getReviewEligibility } from "@/lib/reviews";
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import {
@@ -12,6 +14,7 @@ import {
   newReviewToken,
   newVisitorId,
   reviewCookieName,
+  REVIEW_SENT_COOKIE,
 } from "@/lib/contact";
 
 const ContactInput = z.object({
@@ -21,8 +24,8 @@ const ContactInput = z.object({
 
 export type ContactResult = { ok: true; url: string } | { ok: false; error: string };
 
-/** نافذة منع التكرار: نقرات متتالية من نفس الزائر لا تُحتسب تواصلاً جديداً. */
-const DEDUPE_WINDOW_MS = 2 * 60 * 1000;
+/** نافذة منع التكرار: تواصل الزائر نفسه مع المكتب نفسه بالوسيلة نفسها خلال نصف ساعة يُحتسب مرة واحدة. */
+const DEDUPE_WINDOW_MS = 30 * 60 * 1000;
 
 /**
  * يسجّل التواصل في قاعدة البيانات أولاً، ثم يعيد رابط التواصل.
@@ -93,4 +96,58 @@ export async function startContact(input: unknown): Promise<ContactResult> {
   }
 
   return { ok: true, url: buildContactUrl(method, target) };
+}
+
+// ------------------------------------------------------------
+// إرسال تقييم (لا يُنشر قبل مراجعة الإدارة)
+// ------------------------------------------------------------
+
+export type ReviewState = { ok: true } | { ok: false; error: string } | undefined;
+
+const ReviewInput = z.object({
+  officeId: z.string().uuid(),
+  rating: z.coerce.number().int().min(1, "اختر عدد النجوم").max(5),
+  reviewer_name: z.string().trim().max(60, "الاسم طويل جداً"),
+  comment: z.string().trim().max(1000, "التعليق أطول من ١٠٠٠ حرف"),
+});
+
+export async function submitReview(_: ReviewState, formData: FormData): Promise<ReviewState> {
+  const parsed = ReviewInput.safeParse({
+    officeId: formData.get("officeId"),
+    rating: formData.get("rating") ?? 0,
+    reviewer_name: formData.get("reviewer_name") ?? "",
+    comment: formData.get("comment") ?? "",
+  });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  const v = parsed.data;
+
+  const eligibility = await getReviewEligibility(v.officeId);
+  if (!eligibility.eligible) return { ok: false, error: "التقييم متاح فقط لمن تواصل مع المكتب عبر ميعاد" };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { error } = await createServiceClient().from("reviews").insert({
+    office_id: v.officeId,
+    contact_event_id: eligibility.contactEventId,
+    user_id: user?.id ?? null,
+    reviewer_name: v.reviewer_name || null,
+    rating: v.rating,
+    comment: v.comment || null,
+    status: "pending",
+  });
+  if (error) {
+    if (error.code === "23505") return { ok: false, error: "سبق إرسال تقييم لهذا التواصل" };
+    console.error("review insert failed", error);
+    return { ok: false, error: "تعذّر إرسال التقييم، حاول مرة أخرى" };
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.delete(reviewCookieName(v.officeId));
+  // رسالة شكر تظهر بعد تحديث الصفحة (لدقيقتين)
+  cookieStore.set(REVIEW_SENT_COOKIE, v.officeId, { ...cookieBase, maxAge: 120 });
+  revalidatePath("/admin/reviews");
+  return { ok: true };
 }

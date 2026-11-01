@@ -2,6 +2,7 @@ import "server-only";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 
 export const VISITOR_COOKIE = "meead_vid";
+export const REVIEW_SENT_COOKIE = "meead_review_sent";
 export const reviewCookieName = (officeId: string) => `meead_rt_${officeId}`;
 
 export const REVIEW_TOKEN_MAX_AGE = 60 * 60 * 24 * 90; // 90 يوماً

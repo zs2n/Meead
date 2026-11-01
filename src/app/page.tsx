@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SearchForm } from "@/components/search-form";
 import { getCities, getSpecialtyTree } from "@/lib/data";
 
@@ -75,6 +76,15 @@ export default async function HomePage() {
               <p className="mt-1 text-sm text-ink/80">{t.body}</p>
             </div>
           ))}
+        </div>
+        <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-2xl border border-line bg-card p-5 sm:flex-row">
+          <div>
+            <h3 className="font-bold">هل تدير مكتب محاماة؟</h3>
+            <p className="text-sm text-muted">سجّل مكتبك في ميعاد واستقبل طلبات العملاء الباحثين عن محامٍ في تخصصك.</p>
+          </div>
+          <Link href="/join" className="shrink-0 rounded-xl bg-navy-700 px-5 py-2.5 font-semibold text-white hover:bg-navy-800">
+            سجّل مكتبك
+          </Link>
         </div>
         <p className="mt-4 text-center text-xs text-muted">
           ميعاد منصة للتعريف والتواصل فقط، ولا تقدّم استشارات قانونية.
