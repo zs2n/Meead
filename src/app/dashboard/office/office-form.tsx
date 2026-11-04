@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { Field, FormMessage, SubmitButton, inputClass } from "@/components/form";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Field, FormMessage, inputClass } from "@/components/form";
 import { WEEKDAYS } from "@/lib/format";
 import type { MyOffice } from "@/lib/dashboard";
-import { saveOffice } from "./actions";
+import { saveOffice, type OfficeFormState } from "./actions";
 
 type Option = { slug: string; name_ar: string };
 
@@ -27,7 +28,20 @@ export function OfficeForm({
   cities: Option[];
   caseTypes: Option[];
 }) {
-  const [state, action] = useActionState(saveOffice, undefined);
+  const router = useRouter();
+  const [state, setState] = useState<OfficeFormState>(undefined);
+  const [pending, startTransition] = useTransition();
+
+  // نرسل يدوياً بدل form action حتى لا يمسح React الحقول بعد الخطأ
+  function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    startTransition(async () => {
+      const result = await saveOffice(undefined, fd);
+      setState(result);
+      if (result?.ok) router.refresh();
+    });
+  }
   const errors = state && !state.ok ? state.fieldErrors ?? {} : {};
   const isNew = !office;
 
@@ -40,7 +54,7 @@ export function OfficeForm({
   const [closed, setClosed] = useState(initialHours.map((h) => h.is_closed));
 
   return (
-    <form action={action} className="space-y-6" noValidate>
+    <form onSubmit={submit} className="space-y-6" noValidate>
       <Section title="بيانات المكتب">
         <Field label="اسم المكتب" error={errors.name}>
           <input name="name" defaultValue={office?.name} required maxLength={120} className={inputClass} />
@@ -150,9 +164,13 @@ export function OfficeForm({
 
       <div className="sticky bottom-0 -mx-4 space-y-3 border-t border-line bg-paper/95 px-4 py-4 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
         <FormMessage error={state && !state.ok ? state.message : null} success={state?.ok ? state.message : null} />
-        <SubmitButton className="w-full rounded-xl bg-gold-500 px-6 py-3 font-semibold text-navy-900 transition hover:bg-gold-400 disabled:opacity-60 sm:w-auto" pendingText="جارٍ الحفظ…">
-          {isNew ? "إرسال طلب التسجيل" : office.status === "rejected" ? "حفظ وإعادة التقديم" : "حفظ التعديلات"}
-        </SubmitButton>
+        <button
+          type="submit"
+          disabled={pending}
+          className="w-full rounded-xl bg-gold-500 px-6 py-3 font-semibold text-navy-900 transition hover:bg-gold-400 disabled:opacity-60 sm:w-auto"
+        >
+          {pending ? "جارٍ الحفظ…" : isNew ? "إرسال طلب التسجيل" : office.status === "rejected" ? "حفظ وإعادة التقديم" : "حفظ التعديلات"}
+        </button>
       </div>
     </form>
   );
