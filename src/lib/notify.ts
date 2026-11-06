@@ -1,13 +1,11 @@
 import "server-only";
 
 /**
- * يرسل إشعاراً بالبريد عبر Resend. لا يرمي خطأً أبداً: فشل الإشعار
- * لا يجب أن يفشل حفظ الطلب نفسه.
- * المتغيرات المطلوبة في Vercel: RESEND_API_KEY و NOTIFY_EMAIL.
+ * يرسل بريداً عبر Resend. لا يرمي خطأً أبداً: فشل الإشعار
+ * لا يجب أن يفشل الحفظ أو القرار نفسه.
  */
-export async function notifyAdmin(subject: string, html: string): Promise<void> {
+export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
-  const to = process.env.NOTIFY_EMAIL;
   if (!apiKey || !to) return;
 
   try {
@@ -24,8 +22,14 @@ export async function notifyAdmin(subject: string, html: string): Promise<void> 
         html,
       }),
     });
-    if (!res.ok) console.error("notifyAdmin failed", res.status, await res.text());
+    if (!res.ok) console.error("sendEmail failed", res.status, await res.text());
   } catch (err) {
-    console.error("notifyAdmin error", err);
+    console.error("sendEmail error", err);
   }
+}
+
+/** إشعار لفريق الإدارة (NOTIFY_EMAIL) */
+export function notifyAdmin(subject: string, html: string): Promise<void> {
+  const to = process.env.NOTIFY_EMAIL;
+  return to ? sendEmail(to, subject, html) : Promise.resolve();
 }

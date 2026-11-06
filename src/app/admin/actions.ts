@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { sendEmail } from "@/lib/notify";
 
 export type AdminState = { error?: string } | undefined;
 
@@ -57,6 +58,28 @@ export async function decideOffice(_: AdminState, formData: FormData): Promise<A
   if (error) {
     console.error("decideOffice failed", error);
     return { error: "تعذّر حفظ القرار" };
+  }
+
+  // إشعار صاحب المكتب بالقرار (بعد نجاح الحفظ)
+  if (decision === "approve" || decision === "reject") {
+    const { data: owner } = await supabase
+      .from("offices")
+      .select("owner_id")
+      .eq("id", officeId)
+      .maybeSingle();
+    if (owner?.owner_id) {
+      const { data: userRes } = await createServiceClient().auth.admin.getUserById(owner.owner_id);
+      const email = userRes.user?.email;
+      if (email) {
+        await sendEmail(
+          email,
+          decision === "approve" ? "تم اعتماد مكتبك في ميعاد" : "تحديث بشأن طلب مكتبك في ميعاد",
+          decision === "approve"
+            ? `<p>تم اعتماد مكتبك <strong>${office.slug}</strong> ونشره في ميعاد. يمكنك الآن رؤيته في نتائج البحث.</p>`
+            : `<p>لم يُعتمد طلب مكتبك في الوقت الحالي.</p><p>سبب الرفض: ${reason}</p><p>عدّل البيانات المطلوبة من لوحة مكتبك ثم أعد التقديم.</p>`,
+        );
+      }
+    }
   }
 
   revalidatePath("/admin", "layout");
