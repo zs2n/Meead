@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { City, SpecialtyTree } from "@/lib/data";
 
 type Props = {
@@ -25,9 +28,14 @@ function Chevron() {
   );
 }
 
-/** نموذج بحث يعمل بدون JavaScript (GET إلى /search) */
+/** نموذج بحث يعمل بدون JavaScript (GET إلى /search)، ويحدّث أنواع القضايا فور تغيير التخصص */
 export function SearchForm({ cities, specialties, defaults = {}, compact = false }: Props) {
-  const root = specialties.find((s) => s.slug === defaults.specialty) ?? specialties[0];
+  const [specialtySlug, setSpecialtySlug] = useState(
+    defaults.specialty ?? specialties[0]?.slug ?? "",
+  );
+  const root = specialties.find((s) => s.slug === specialtySlug) ?? specialties[0];
+  const typeDefault =
+    root?.children.some((c) => c.slug === defaults.type) ? defaults.type : "";
 
   return (
     <form
@@ -38,7 +46,12 @@ export function SearchForm({ cities, specialties, defaults = {}, compact = false
       <label className="block">
         <span className="mb-1 block text-sm font-medium text-muted">التخصص</span>
         <span className="relative block">
-          <select name="specialty" defaultValue={root?.slug} className={selectClass}>
+          <select
+            name="specialty"
+            value={root?.slug ?? ""}
+            onChange={(e) => setSpecialtySlug(e.target.value)}
+            className={selectClass}
+          >
             {specialties.map((s) => (
               <option key={s.slug} value={s.slug}>
                 {s.name_ar}
@@ -52,7 +65,7 @@ export function SearchForm({ cities, specialties, defaults = {}, compact = false
       <label className="block">
         <span className="mb-1 block text-sm font-medium text-muted">نوع القضية (اختياري)</span>
         <span className="relative block">
-          <select name="type" defaultValue={defaults.type ?? ""} className={selectClass}>
+          <select key={root?.slug} name="type" defaultValue={typeDefault} className={selectClass}>
             <option value="">كل القضايا</option>
             {root?.children.map((c) => (
               <option key={c.slug} value={c.slug}>

@@ -134,3 +134,16 @@ export async function getContactMethods(officeId: string): Promise<ContactMethod
   if (error) throw error;
   return data?.[0] ?? { has_whatsapp: false, has_phone: false, has_email: false };
 }
+
+/** مكاتب معتمدة بعينها (لصفحة المقارنة) */
+export async function getOfficesBySlugs(slugs: string[]): Promise<OfficeListing[]> {
+  if (slugs.length === 0) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("office_listing")
+    .select(LISTING_COLUMNS)
+    .eq("status", "approved")
+    .in("slug", slugs);
+  if (error) throw error;
+  return data as OfficeListing[];
+}

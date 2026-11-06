@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { OfficeCard } from "@/components/office-card";
+import { ResultsList } from "@/components/results-list";
 import { SearchForm } from "@/components/search-form";
 import { getCities, getSpecialtyTree, searchOffices } from "@/lib/data";
 import { formatNumber } from "@/lib/format";
@@ -43,13 +43,7 @@ export default async function SearchPage({ searchParams }: Props) {
       </div>
 
       {offices.length > 0 ? (
-        <ul className="space-y-3">
-          {offices.map((o) => (
-            <li key={o.id}>
-              <OfficeCard office={o} />
-            </li>
-          ))}
-        </ul>
+        <ResultsList offices={offices} />
       ) : (
         <div className="rounded-2xl border border-dashed border-line bg-card p-10 text-center">
           <p className="font-medium">لم نجد مكاتب مطابقة لهذا البحث حالياً.</p>
