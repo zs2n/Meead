@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { getMyOffice } from "@/lib/dashboard";
 import { normalizeSaudiPhone } from "@/lib/phone";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { notifyAdmin } from "@/lib/notify";
 
 export type OfficeFormState =
   | { ok: true; message: string }
@@ -155,6 +156,13 @@ export async function saveOffice(_: OfficeFormState, formData: FormData): Promis
   revalidatePath("/dashboard", "layout");
   revalidatePath("/search");
   if (existing?.slug) revalidatePath(`/office/${existing.slug}`);
+
+  if (!existing) {
+    await notifyAdmin(
+      "طلب تسجيل مكتب جديد في ميعاد",
+      `<p>وصل طلب تسجيل مكتب جديد: <strong>${v.name}</strong>.</p><p>راجع الترخيص واعتمده من لوحة الإدارة.</p>`,
+    );
+  }
 
   if (!existing) return { ok: true, message: "تم إرسال طلبك بنجاح. سنراجع الترخيص ونبلغك عند اعتماد المكتب." };
   if (existing.status === "rejected") return { ok: true, message: "تم إعادة تقديم الطلب للمراجعة." };

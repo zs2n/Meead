@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getReviewEligibility } from "@/lib/reviews";
+import { notifyAdmin } from "@/lib/notify";
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import {
@@ -143,6 +144,11 @@ export async function submitReview(_: ReviewState, formData: FormData): Promise<
     console.error("review insert failed", error);
     return { ok: false, error: "تعذّر إرسال التقييم، حاول مرة أخرى" };
   }
+
+  await notifyAdmin(
+    "تقييم جديد بانتظار المراجعة",
+    `<p>وصل تقييم جديد (${v.rating} من ٥) بانتظار المراجعة في لوحة الإدارة.</p>`,
+  );
 
   const cookieStore = await cookies();
   cookieStore.delete(reviewCookieName(v.officeId));
