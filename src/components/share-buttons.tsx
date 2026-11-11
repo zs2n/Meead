@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { trackEvent } from "@/lib/track";
 
 /** أزرار مشاركة الصفحة: واتساب، إكس، نسخ الرابط، ومشاركة النظام على الجوال */
 export function ShareButtons({ url, title }: { url: string; title: string }) {
   const [copied, setCopied] = useState(false);
+  // يُحدَّد بعد التحميل لتفادي اختلاف ما يرسمه الخادم عن المتصفح
+  const [canNative, setCanNative] = useState(false);
+  useEffect(() => setCanNative(typeof navigator.share === "function"), []);
   const text = `${title} — على ميعاد`;
   const enc = encodeURIComponent;
 
@@ -30,7 +33,6 @@ export function ShareButtons({ url, title }: { url: string; title: string }) {
   }
 
   const btn = "flex h-10 items-center gap-1.5 rounded-xl border border-line bg-card px-3 text-sm font-medium text-ink hover:border-navy-600";
-  const canNative = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   return (
     <div className="flex flex-wrap items-center gap-2">

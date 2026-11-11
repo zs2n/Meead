@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { SignupForm } from "./signup-form";
 
-export const metadata: Metadata = { title: "تسجيل مكتب جديد" };
+export const metadata: Metadata = {
+  title: "سجّل مكتبك في ميعاد مجاناً",
+  description: "اظهر للباحثين عن محامٍ في الدمام والخبر واستقبل طلبات التواصل مباشرة. التسجيل مجاني ويستغرق دقائق.",
+  alternates: { canonical: "/join" },
+};
 
 const steps = [
   "أنشئ حساباً لمكتبك",
@@ -22,8 +26,8 @@ export default async function JoinPage() {
         <p className="text-sm font-semibold text-gold-700">للمكاتب</p>
         <h1 className="mt-1 text-3xl font-bold leading-snug">سجّل مكتبك في ميعاد</h1>
         <p className="mt-3 text-muted">
-          اظهر للباحثين عن محامٍ في الأحوال الشخصية في الدمام والخبر، واستقبل طلبات التواصل مباشرة على
-          واتساب أو الهاتف أو البريد.
+          اظهر لمن يبحث عن محامٍ في تخصصك في الدمام والخبر، واستقبل طلبات التواصل مباشرة على واتساب أو الهاتف أو
+          البريد. وتابع من لوحتك عدد الطلبات وتقييمات عملائك.
         </p>
         <ol className="mt-6 space-y-3">
           {steps.map((s, i) => (

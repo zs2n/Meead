@@ -10,7 +10,6 @@ export const metadata: Metadata = { title: "ملف المكتب" };
 export default async function OfficeProfilePage() {
   const user = await requireUser("/dashboard/office");
   const [office, cities, tree] = await Promise.all([getMyOffice(user.id), getCities(), getSpecialtyTree()]);
-  const caseTypes = tree.flatMap((t) => t.children);
 
   return (
     <div className="space-y-4">
@@ -27,7 +26,11 @@ export default async function OfficeProfilePage() {
       <OfficeForm
         office={office}
         cities={cities.map(({ slug, name_ar }) => ({ slug, name_ar }))}
-        caseTypes={caseTypes.map(({ slug, name_ar }) => ({ slug, name_ar }))}
+        specialties={tree.map((t) => ({
+          slug: t.slug,
+          name_ar: t.name_ar,
+          children: t.children.map(({ slug, name_ar }) => ({ slug, name_ar })),
+        }))}
       />
     </div>
   );

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser, safeNext } from "@/lib/auth";
 import { LoginForm } from "./login-form";
 
-export const metadata: Metadata = { title: "دخول المكاتب" };
+export const metadata: Metadata = { title: "دخول المكاتب", robots: { index: false, follow: true }, alternates: { canonical: "/login" } };
 
 type Props = { searchParams: Promise<{ next?: string }> };
 

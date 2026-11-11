@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getReviewEligibility } from "@/lib/reviews";
 import { notifyAdmin } from "@/lib/notify";
+import { TOO_MANY, allow } from "@/lib/rate-limit";
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import {
@@ -36,6 +37,7 @@ export async function startContact(input: unknown): Promise<ContactResult> {
   const parsed = ContactInput.safeParse(input);
   if (!parsed.success) return { ok: false, error: "طلب غير صالح" };
   const { officeId, method } = parsed.data;
+  if (!(await allow("contact", 40, 3600))) return { ok: false, error: TOO_MANY };
 
   const admin = createServiceClient();
   const { data: office } = await admin
@@ -122,6 +124,7 @@ export async function submitReview(_: ReviewState, formData: FormData): Promise<
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
   const v = parsed.data;
 
+  if (!(await allow("review", 6, 3600))) return { ok: false, error: TOO_MANY };
   const eligibility = await getReviewEligibility(v.officeId);
   if (!eligibility.eligible) return { ok: false, error: "التقييم متاح فقط لمن تواصل مع المكتب عبر ميعاد" };
 

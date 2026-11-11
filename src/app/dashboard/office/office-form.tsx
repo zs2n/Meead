@@ -22,11 +22,11 @@ const localPhone = (p: string | null | undefined) => (p?.startsWith("+966") ? "0
 export function OfficeForm({
   office,
   cities,
-  caseTypes,
+  specialties,
 }: {
   office: MyOffice | null;
   cities: Option[];
-  caseTypes: Option[];
+  specialties: (Option & { children: Option[] })[];
 }) {
   const router = useRouter();
   const [state, setState] = useState<OfficeFormState>(undefined);
@@ -78,9 +78,12 @@ export function OfficeForm({
         </div>
       </Section>
 
-      <Section title="أنواع القضايا التي يتولاها المكتب" subtitle="ضمن الأحوال الشخصية">
+      <Section title="أنواع القضايا التي يتولاها المكتب" subtitle="اختر كل ما ينطبق. يظهر مكتبك في بحث كل نوع تختاره.">
+        {specialties.map((sp) => (
+        <fieldset key={sp.slug}>
+        <legend className="mb-2 text-sm font-bold text-navy-700">{sp.name_ar}</legend>
         <div className="grid gap-2 sm:grid-cols-2">
-          {caseTypes.map((t) => (
+          {sp.children.map((t) => (
             <label key={t.slug} className="flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-white px-3 py-2.5 has-[:checked]:border-gold-500 has-[:checked]:bg-gold-100/40">
               <input
                 type="checkbox"
@@ -93,6 +96,8 @@ export function OfficeForm({
             </label>
           ))}
         </div>
+        </fieldset>
+        ))}
         {errors.specialties && <p className="text-xs text-red-700">{errors.specialties}</p>}
       </Section>
 

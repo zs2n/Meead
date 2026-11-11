@@ -18,7 +18,6 @@ export type OfficeListing = {
   specialty_names: string[];
   rating_avg: number;
   rating_count: number;
-  created_at: string;
 };
 
 export type OfficeHours = {
@@ -39,7 +38,7 @@ export type PublicReview = {
 export type ContactMethods = { has_whatsapp: boolean; has_phone: boolean; has_email: boolean };
 
 const LISTING_COLUMNS =
-  "id, slug, name, description, address, city_slug, city_name, specialty_slugs, specialty_names, rating_avg, rating_count, created_at";
+  "id, slug, name, description, address, city_slug, city_name, specialty_slugs, specialty_names, rating_avg, rating_count";
 
 export const getCities = cache(async (): Promise<City[]> => {
   const supabase = await createClient();
@@ -100,19 +99,29 @@ export async function searchOffices(params: SearchParams): Promise<OfficeListing
     query = query.overlaps("specialty_slugs", slugs);
   }
 
-  if (params.sort === "new") {
-    query = query.order("created_at", { ascending: false });
-  } else if (params.sort === "reviews") {
-    query = query.order("rating_count", { ascending: false }).order("rating_avg", { ascending: false });
-  } else {
-    query = query.order("rating_avg", { ascending: false }).order("rating_count", { ascending: false });
-  }
-  query = query.order("name");
-  if (params.limit) query = query.limit(params.limit);
+  const byRating = () =>
+    query.order("rating_avg", { ascending: false }).order("rating_count", { ascending: false }).order("name");
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return data as OfficeListing[];
+  let result;
+  if (params.sort === "new") {
+    result = await withLimit(query.order("created_at", { ascending: false }).order("name"), params.limit);
+    // قاعدة بيانات لم تُحدَّث بعد (لا يوجد created_at في العرض): نرجع للترتيب الافتراضي بدل الخطأ
+    if (result.error) result = await withLimit(byRating(), params.limit);
+  } else if (params.sort === "reviews") {
+    result = await withLimit(
+      query.order("rating_count", { ascending: false }).order("rating_avg", { ascending: false }).order("name"),
+      params.limit,
+    );
+  } else {
+    result = await withLimit(byRating(), params.limit);
+  }
+
+  if (result.error) throw result.error;
+  return result.data as unknown as OfficeListing[];
+}
+
+function withLimit<T extends { limit: (n: number) => T }>(q: T, limit?: number): T {
+  return limit ? q.limit(limit) : q;
 }
 
 /** أرقام حقيقية من قاعدة البيانات لعرضها كعناصر ثقة */

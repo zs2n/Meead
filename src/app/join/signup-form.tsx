@@ -18,7 +18,13 @@ export function SignupForm() {
       <Field label="كلمة المرور" hint="٨ أحرف على الأقل">
         <input name="password" type="password" required minLength={8} autoComplete="new-password" dir="ltr" className={`${inputClass} text-start`} />
       </Field>
+      {/* مصيدة سبام: مخفية عن البشر */}
+      <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
       <FormMessage error={state?.error} />
+      <p className="text-xs text-muted">
+        بإنشاء الحساب فأنت توافق على <a href="/terms" className="underline">الشروط والأحكام</a> و
+        <a href="/privacy" className="underline">سياسة الخصوصية</a>.
+      </p>
       <SubmitButton pendingText="جارٍ إنشاء الحساب…">التالي: بيانات المكتب</SubmitButton>
     </form>
   );

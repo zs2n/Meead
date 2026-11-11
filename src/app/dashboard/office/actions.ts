@@ -7,7 +7,8 @@ import { requireUser } from "@/lib/auth";
 import { getMyOffice } from "@/lib/dashboard";
 import { normalizeSaudiPhone } from "@/lib/phone";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { notifyAdmin } from "@/lib/notify";
+import { escapeHtml, notifyAdmin } from "@/lib/notify";
+import { TOO_MANY, allow } from "@/lib/rate-limit";
 
 export type OfficeFormState =
   | { ok: true; message: string }
@@ -85,6 +86,7 @@ const RPC_ERRORS: Record<string, string> = {
 
 export async function saveOffice(_: OfficeFormState, formData: FormData): Promise<OfficeFormState> {
   const user = await requireUser("/dashboard/office");
+  if (!(await allow("office_save", 20, 3600))) return { ok: false, message: TOO_MANY };
   const existing = await getMyOffice(user.id);
 
   const parsed = OfficeInput.safeParse({
@@ -160,7 +162,7 @@ export async function saveOffice(_: OfficeFormState, formData: FormData): Promis
   if (!existing) {
     await notifyAdmin(
       "طلب تسجيل مكتب جديد في ميعاد",
-      `<p>وصل طلب تسجيل مكتب جديد: <strong>${v.name}</strong>.</p><p>راجع الترخيص واعتمده من لوحة الإدارة.</p>`,
+      `<p>وصل طلب تسجيل مكتب جديد: <strong>${escapeHtml(v.name)}</strong>.</p><p>راجع الترخيص واعتمده من لوحة الإدارة.</p>`,
     );
   }
 

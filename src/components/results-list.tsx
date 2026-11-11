@@ -24,6 +24,7 @@ export function ResultsList({ offices }: { offices: OfficeListing[] }) {
 
   return (
     <>
+      <h2 className="sr-only">قائمة المكاتب</h2>
       <ul className={`space-y-3 ${selected.length >= 2 ? "pb-24" : ""}`}>
         {offices.map((o) => {
           const checked = selected.includes(o.slug);

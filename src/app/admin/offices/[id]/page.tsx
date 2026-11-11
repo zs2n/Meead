@@ -6,6 +6,7 @@ import { STATUS_LABEL, type OfficeStatus } from "@/lib/dashboard";
 import { WEEKDAYS, formatDate, formatTime } from "@/lib/format";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { DecisionPanel } from "./decision-panel";
+import { DeletePanel } from "./delete-panel";
 
 export const metadata: Metadata = { title: "مراجعة مكتب" };
 
@@ -151,6 +152,9 @@ export default async function AdminOfficeDetail({ params }: { params: Promise<{ 
             </p>
             <DecisionPanel officeId={o.id} status={o.status} />
           </section>
+          <div className="px-1">
+            <DeletePanel officeId={o.id} />
+          </div>
           {o.status === "approved" && (
             <Link href={`/office/${o.slug}`} className="block text-center text-sm font-semibold text-navy-600 underline">
               عرض الصفحة العامة

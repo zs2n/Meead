@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { sendEmail } from "@/lib/notify";
+import { escapeHtml, sendEmail } from "@/lib/notify";
 
 export type AdminState = { error?: string } | undefined;
 
@@ -24,7 +24,7 @@ export async function decideOffice(_: AdminState, formData: FormData): Promise<A
   const supabase = await createClient();
   const { data: office } = await supabase
     .from("offices")
-    .select("id, slug, status, office_private(license_number, license_doc_path, phone, whatsapp, email)")
+    .select("id, slug, name, status, office_private(license_number, license_doc_path, phone, whatsapp, email)")
     .eq("id", officeId)
     .maybeSingle();
   if (!office) return { error: "المكتب غير موجود" };
@@ -75,8 +75,8 @@ export async function decideOffice(_: AdminState, formData: FormData): Promise<A
           email,
           decision === "approve" ? "تم اعتماد مكتبك في ميعاد" : "تحديث بشأن طلب مكتبك في ميعاد",
           decision === "approve"
-            ? `<p>تم اعتماد مكتبك <strong>${office.slug}</strong> ونشره في ميعاد. يمكنك الآن رؤيته في نتائج البحث.</p>`
-            : `<p>لم يُعتمد طلب مكتبك في الوقت الحالي.</p><p>سبب الرفض: ${reason}</p><p>عدّل البيانات المطلوبة من لوحة مكتبك ثم أعد التقديم.</p>`,
+            ? `<p>تم اعتماد مكتبك <strong>${escapeHtml(office.name)}</strong> ونشره في ميعاد. يمكنك الآن رؤيته في نتائج البحث.</p>`
+            : `<p>لم يُعتمد طلب مكتبك في الوقت الحالي.</p><p>سبب الرفض: ${escapeHtml(reason)}</p><p>عدّل البيانات المطلوبة من لوحة مكتبك ثم أعد التقديم.</p>`,
         );
       }
     }
@@ -111,4 +111,53 @@ export async function moderateReview(formData: FormData): Promise<void> {
   revalidatePath("/search");
   const slug = (data?.offices as unknown as { slug: string } | null)?.slug;
   if (slug) revalidatePath(`/office/${slug}`);
+}
+
+// ------------------------------------------------------------
+// حذف مكتب نهائياً (للطلبات التجريبية أو المكررة)
+// ------------------------------------------------------------
+export async function deleteOffice(_: AdminState, formData: FormData): Promise<AdminState> {
+  await requireAdmin();
+  const id = z.string().uuid().safeParse(formData.get("officeId"));
+  if (!id.success) return { error: "طلب غير صالح" };
+  if (formData.get("confirm") !== "حذف") return { error: "اكتب كلمة «حذف» للتأكيد" };
+
+  const supabase = await createClient();
+  const { data: office } = await supabase
+    .from("offices")
+    .select("slug, office_private(license_doc_path)")
+    .eq("id", id.data)
+    .maybeSingle();
+  if (!office) return { error: "المكتب غير موجود" };
+
+  const { error } = await supabase.from("offices").delete().eq("id", id.data);
+  if (error) {
+    console.error("deleteOffice failed", error);
+    return { error: "تعذّر حذف المكتب" };
+  }
+
+  // حذف صورة الترخيص من التخزين الخاص
+  const doc = (office.office_private as unknown as { license_doc_path: string | null } | null)?.license_doc_path;
+  if (doc) await createServiceClient().storage.from("licenses").remove([doc]);
+
+  revalidatePath("/admin", "layout");
+  revalidatePath("/search");
+  revalidatePath(`/office/${office.slug}`);
+  redirect("/admin/offices");
+}
+
+// ------------------------------------------------------------
+// رسائل "تواصل معنا"
+// ------------------------------------------------------------
+export async function setMessageHandled(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const id = z.string().uuid().safeParse(formData.get("messageId"));
+  if (!id.success) return;
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("contact_messages")
+    .update({ handled: formData.get("handled") === "true" })
+    .eq("id", id.data);
+  if (error) console.error("setMessageHandled failed", error);
+  revalidatePath("/admin", "layout");
 }

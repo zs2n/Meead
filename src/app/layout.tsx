@@ -8,8 +8,9 @@ import { site } from "@/lib/site";
 import "./globals.css";
 
 const plexArabic = IBM_Plex_Sans_Arabic({
-  subsets: ["arabic", "latin"],
-  weight: ["400", "500", "600", "700"],
+  // نحمّل مسبقاً الحروف العربية بثلاثة أوزان فقط: أقل ملفات = ظهور أسرع للنص
+  subsets: ["arabic"],
+  weight: ["400", "600", "700"],
   variable: "--font-plex-arabic",
   display: "swap",
 });

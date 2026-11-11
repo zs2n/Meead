@@ -23,6 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           { href: "/admin/offices", label: "كل المكاتب" },
           { href: "/admin/reviews", label: "مراجعة التقييمات", badge: counts.pendingReviews },
           { href: "/admin/contacts", label: "سجل التواصل" },
+          { href: "/admin/messages", label: "الرسائل والمشتركون", badge: counts.newMessages },
         ]}
       />
       <div className="mt-6">{children}</div>
