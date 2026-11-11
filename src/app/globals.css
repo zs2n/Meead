@@ -24,6 +24,15 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* الموقع بتصميم فاتح فقط: يمنع تشويه الألوان في الوضع الليلي التلقائي للمتصفحات */
+  color-scheme: only light;
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
 body {
@@ -45,3 +54,17 @@ body {
   outline: 2px solid var(--color-gold-500);
   outline-offset: 2px;
 }
+
+/* نصوص الصفحات التعريفية (من نحن، الخصوصية، الشروط) */
+.prose-ar { max-width: 46rem; }
+.prose-ar h2 { margin-top: 2.25rem; margin-bottom: 0.5rem; font-size: 1.25rem; font-weight: 700; }
+.prose-ar h3 { margin-top: 1.5rem; margin-bottom: 0.25rem; font-weight: 700; }
+.prose-ar p { margin-top: 0.75rem; color: color-mix(in srgb, var(--color-ink) 88%, transparent); }
+.prose-ar ul { margin-top: 0.75rem; padding-inline-start: 1.25rem; list-style: disc; }
+.prose-ar li { margin-top: 0.35rem; }
+.prose-ar a { color: var(--color-navy-600); text-decoration: underline; }
+
+/* أكورديون الأسئلة الشائعة */
+details > summary { list-style: none; cursor: pointer; }
+details > summary::-webkit-details-marker { display: none; }
+details[open] .faq-chevron { transform: rotate(180deg); }

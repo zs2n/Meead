@@ -48,3 +48,12 @@ export const toMinutes = (t: string) => {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
 };
+
+/** صيغة الجمع العربية لكلمة "مكتب" */
+export function officesLabel(count: number): string {
+  if (count === 0) return "لا توجد مكاتب";
+  if (count === 1) return "مكتب واحد";
+  if (count === 2) return "مكتبان";
+  if (count >= 3 && count <= 10) return `${formatNumber(count)} مكاتب`;
+  return `${formatNumber(count)} مكتباً`;
+}

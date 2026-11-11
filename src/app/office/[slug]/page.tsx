@@ -22,6 +22,9 @@ import {
 import { cookies } from "next/headers";
 import { REVIEW_SENT_COOKIE } from "@/lib/contact";
 import { getReviewEligibility } from "@/lib/reviews";
+import { JsonLd } from "@/components/json-ld";
+import { ShareButtons } from "@/components/share-buttons";
+import { absoluteUrl, site } from "@/lib/site";
 import { ContactButtons } from "./contact-buttons";
 import { ReviewForm } from "./review-form";
 
@@ -30,10 +33,16 @@ type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const office = await getOfficeBySlug(slug);
-  if (!office) return { title: "المكتب غير موجود" };
+  if (!office) return { title: "المكتب غير موجود", robots: { index: false } };
+  const title = `${office.name} — محامي في ${office.city_name}`;
+  const description =
+    office.description?.replace(/\s+/g, " ").slice(0, 155) ??
+    `${office.name}: مكتب محاماة مرخّص في ${office.city_name} يتولى قضايا ${office.specialty_names.slice(0, 3).join("، ")}. شاهد التقييمات وتواصل مباشرة عبر ميعاد.`;
   return {
-    title: office.name,
-    description: office.description?.slice(0, 160) ?? undefined,
+    title,
+    description,
+    alternates: { canonical: `/office/${office.slug}` },
+    openGraph: { title: `${title} | ${site.name}`, description, url: `/office/${office.slug}`, type: "profile" },
   };
 }
 
@@ -76,7 +85,48 @@ export default async function OfficePage({ params }: Props) {
   }));
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6">
+    <div className="mx-auto max-w-6xl px-4 py-6 pb-28 lg:pb-6">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "LegalService",
+              "@id": absoluteUrl(`/office/${office.slug}#office`),
+              name: office.name,
+              url: absoluteUrl(`/office/${office.slug}`),
+              description: office.description ?? undefined,
+              address: {
+                "@type": "PostalAddress",
+                addressLocality: office.city_name,
+                addressCountry: "SA",
+                ...(office.address ? { streetAddress: office.address } : {}),
+              },
+              areaServed: office.city_name,
+              knowsAbout: office.specialty_names,
+              ...(office.rating_count > 0
+                ? {
+                    aggregateRating: {
+                      "@type": "AggregateRating",
+                      ratingValue: office.rating_avg,
+                      reviewCount: office.rating_count,
+                      bestRating: 5,
+                      worstRating: 1,
+                    },
+                  }
+                : {}),
+            },
+            {
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                { "@type": "ListItem", position: 1, name: "الرئيسية", item: absoluteUrl("/") },
+                { "@type": "ListItem", position: 2, name: "المكاتب", item: absoluteUrl("/search") },
+                { "@type": "ListItem", position: 3, name: office.name, item: absoluteUrl(`/office/${office.slug}`) },
+              ],
+            },
+          ],
+        }}
+      />
       <nav className="mb-4 text-sm text-muted" aria-label="مسار التنقل">
         <Link href="/" className="hover:text-ink">الرئيسية</Link>
         <span className="mx-2">/</span>
@@ -96,6 +146,15 @@ export default async function OfficePage({ params }: Props) {
             <p className="mt-1 text-sm text-muted">
               {office.city_name}
               {office.address ? ` · ${office.address}` : ""}
+              {" · "}
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${office.name} ${office.address ?? ""} ${office.city_name}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-navy-600 underline"
+              >
+                الموقع على الخريطة
+              </a>
             </p>
             <div className="mt-3 flex items-center gap-2 text-sm">
               {office.rating_count > 0 ? (
@@ -107,6 +166,14 @@ export default async function OfficePage({ params }: Props) {
               ) : (
                 <span className="text-muted">{reviewsLabel(0)}</span>
               )}
+              {status && (
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${status.open ? "bg-green-100 text-green-800" : "bg-line text-muted"}`}>
+                  {status.open ? "مفتوح الآن" : "مغلق الآن"}
+                </span>
+              )}
+            </div>
+            <div className="mt-4 border-t border-line pt-4">
+              <ShareButtons url={absoluteUrl(`/office/${office.slug}`)} title={office.name} />
             </div>
           </header>
 
@@ -235,6 +302,11 @@ export default async function OfficePage({ params }: Props) {
             </section>
           )}
         </aside>
+      </div>
+
+      {/* شريط تواصل ثابت أسفل شاشة الجوال: الإجراء الأهم دائماً في المتناول */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card/95 p-3 shadow-[0_-4px_16px_rgba(0,0,0,.08)] backdrop-blur lg:hidden">
+        <ContactButtons officeId={office.id} methods={methods} variant="bar" />
       </div>
     </div>
   );

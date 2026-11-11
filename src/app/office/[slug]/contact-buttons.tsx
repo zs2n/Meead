@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { ContactMethods } from "@/lib/data";
+import { trackEvent } from "@/lib/track";
 import { startContact } from "./actions";
 
 type Method = "whatsapp" | "call" | "email";
@@ -37,7 +38,16 @@ const BUTTONS: { method: Method; key: keyof ContactMethods; label: string; class
   },
 ];
 
-export function ContactButtons({ officeId, methods }: { officeId: string; methods: ContactMethods }) {
+export function ContactButtons({
+  officeId,
+  methods,
+  variant = "stack",
+}: {
+  officeId: string;
+  methods: ContactMethods;
+  /** stack: أزرار كاملة العرض · bar: شريط مضغوط أسفل شاشة الجوال */
+  variant?: "stack" | "bar";
+}) {
   const [pending, startTransition] = useTransition();
   const [active, setActive] = useState<Method | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -45,13 +55,14 @@ export function ContactButtons({ officeId, methods }: { officeId: string; method
 
   const available = BUTTONS.filter((b) => methods[b.key]);
   if (available.length === 0) {
-    return <p className="text-sm text-muted">لا تتوفر وسائل تواصل لهذا المكتب حالياً.</p>;
+    return variant === "bar" ? null : <p className="text-sm text-muted">لا تتوفر وسائل تواصل لهذا المكتب حالياً.</p>;
   }
 
   function contact(method: Method) {
     setError(null);
     setActive(method);
     startTransition(async () => {
+      trackEvent("contact_click", { method, placement: variant });
       const res = await startContact({ officeId, method });
       if (!res.ok) {
         setError(res.error);
@@ -67,19 +78,19 @@ export function ContactButtons({ officeId, methods }: { officeId: string; method
 
   return (
     <div className="space-y-2">
-      <div className="grid gap-2">
+      <div className={variant === "bar" ? "flex gap-2" : "grid gap-2"}>
         {available.map((b) => (
           <button
             key={b.method}
             type="button"
             disabled={pending}
             onClick={() => contact(b.method)}
-            className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-semibold transition disabled:opacity-60 ${b.className}`}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-3 font-semibold transition disabled:opacity-60 ${b.className}`}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
               {b.icon}
             </svg>
-            {active === b.method ? "جارٍ التحويل…" : b.label}
+            {active === b.method ? "جارٍ التحويل…" : variant === "bar" && b.method === "email" ? "بريد" : b.label}
           </button>
         ))}
       </div>

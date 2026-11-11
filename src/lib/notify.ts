@@ -28,6 +28,15 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
   }
 }
 
+/** يمنع حقن HTML في رسائل البريد عند إدراج نصوص كتبها المستخدم */
+export function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 /** إشعار لفريق الإدارة (NOTIFY_EMAIL) */
 export function notifyAdmin(subject: string, html: string): Promise<void> {
   const to = process.env.NOTIFY_EMAIL;

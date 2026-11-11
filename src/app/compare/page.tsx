@@ -4,7 +4,7 @@ import { Stars } from "@/components/stars";
 import { getOfficesBySlugs } from "@/lib/data";
 import { formatNumber, reviewsLabel } from "@/lib/format";
 
-export const metadata: Metadata = { title: "مقارنة المكاتب" };
+export const metadata: Metadata = { title: "مقارنة المكاتب", robots: { index: false, follow: true } };
 
 type Props = { searchParams: Promise<{ o?: string }> };
 
